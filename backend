@@ -1,0 +1,140 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+pragma solidity >=0.5.0 <0.9.0;
+
+
+contract sub {
+
+ address admin;
+ constructor () {
+
+     admin = msg.sender;
+
+ }
+
+
+    struct Subscription_Details // to store the details of Subscription
+    {
+   string name;
+   uint price;
+   uint period;
+   uint paymentrecivedfor;
+    }
+
+
+
+    struct Subscriber_Details  // to store the details of Subscriber
+    {
+   string name;
+   string email_id; 
+   uint current_time;
+   bool verified; 
+    uint your_validity;
+    }
+
+
+     address public Subscription_ID;
+    mapping (address =>Subscription_Details ) public Subscription;
+    function create_subsription_Plan(string memory _name,uint _price,uint _period) public { // create Subscription
+      Subscription_ID= msg.sender;
+      //Subscription[Subscription_ID] =Subscription_Details(_name,_price,_period,_noofactiveuser); 
+Subscription_Details memory newSubscription_Details = Subscription_Details({
+            name: _name,
+            price: _price,
+            period: _period,
+            paymentrecivedfor:0
+        });
+       Subscription[Subscription_ID] = newSubscription_Details;
+}
+
+
+
+
+mapping(address=> mapping (address =>Subscriber_Details ))public user;
+   address public user_ID;
+
+ function Register (address _Subscription_ID,string memory _name,string memory _email_id) public payable {
+   
+   require (msg.sender !=_Subscription_ID);
+   require(msg.value ==Subscription[_Subscription_ID].price );      
+  user_ID = msg.sender;
+   Subscription[_Subscription_ID]. paymentrecivedfor++;
+Subscriber_Details memory newSubscriber_Details = Subscriber_Details({
+            name: _name,
+            email_id: _email_id,
+            current_time: block.timestamp,
+            verified: true,
+            your_validity:Subscription[_Subscription_ID].period
+        });
+        user[user_ID][_Subscription_ID] = newSubscriber_Details;
+    }
+ 
+ 
+
+
+
+
+  function sub_status (address ID, address ID1) public {
+      if ((user[ID][ID1].current_time + Subscription[ID1].period) > block.timestamp ){
+        user[ID][ID1].verified= true;
+       user[ID][ID1].your_validity= user[ID][ID1].current_time + Subscription[ID1].period - block.timestamp  ;
+     }
+      else{
+     user[ID][ID1].verified = false;
+      user[ID][ID1].your_validity=0;
+     }
+}
+     function get_Subscriber_Details(address ID, address ID1) public view returns (Subscriber_Details memory){
+       
+       return  user[ID][ID1];
+     }
+
+
+
+
+
+function get_Subscription_Details(address ID) public view returns (Subscription_Details memory){
+       
+       return Subscription[ID];
+     }
+
+
+
+
+
+     function getBalance() public view returns(uint){
+        require(msg.sender== admin);
+        return address(this).balance;
+     }
+
+
+
+
+    function withdraw(address id) public payable {
+      uint payment = Subscription[id].paymentrecivedfor*Subscription[id].price;
+   address payable _user=payable(id);
+        _user.transfer(payment);
+       Subscription[id].paymentrecivedfor=0;
+
+    }
+
+
+
+
+    function renewal(address userID,address subID) public payable {
+      require(user[userID][subID].verified!=true,"You currunt Plan is Active");
+      require(user[userID][subID].your_validity==0);
+      require(msg.value == Subscription[subID].price);
+      
+      user[userID][subID].verified=true;
+      user[userID][subID].current_time=block.timestamp;
+      user[userID][subID].your_validity=Subscription[subID].period;
+      Subscription[subID].paymentrecivedfor++;
+    }
+
+
+
+
+
+
+}
